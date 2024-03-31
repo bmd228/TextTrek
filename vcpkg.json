@@ -1,0 +1,15 @@
+{
+  "name": "texttrek",
+  "version": "1.1",
+  "builtin-baseline": "14e7bb4ae24616ec54ff6b2f6ef4e8659434ea44",
+  "dependencies": [
+    "asio-grpc",
+    "boost-asio",
+    "oatpp-swagger",
+    "pkgconf",
+    "poppler",
+    "redis-plus-plus",
+    "spdlog",
+    "tesseract"
+  ]
+}

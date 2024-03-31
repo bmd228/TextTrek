@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package ProtoAPI;
+
+service Example {
+  rpc ServerStreaming(Request) returns (stream Response) {}
+
+  rpc ClientStreaming(stream Request) returns (Response) {}
+
+  rpc BidirectionalStreaming(stream Request) returns (stream Response) {}
+
+  rpc Unary(Request) returns (Response) {}
+}
+
+
+message Response {
+  enum State {
+    OK = 0;
+    Error = 1;
+  }
+  bytes pData=1;
+  string language=2;
+  State state=3;
+  string err=4;
+}
+
+message Request {
+    enum Formats {
+    IMAGE = 0;
+    PDF = 1;
+  }
+  Formats format = 1;
+  bytes pData=2;
+  string language=3;
+}
+
