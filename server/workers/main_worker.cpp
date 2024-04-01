@@ -2,12 +2,15 @@
 
 
 
+
+
 ThreadPool::ThreadPool(const Config& config_):config(config_) {
     redis = std::make_shared<RedisWorker>(config_);
     
     for (size_t i = 0; i < config.num_thread_worker; ++i) {
-
+        
         threads.emplace_back([this] {
+            fasttext_workers.emplace(std::this_thread::get_id(), std::make_shared<FasttextWorker>(config));
             while (true) {
                 Task task;
                 if (tasks.try_dequeue(task)) {
@@ -68,17 +71,21 @@ std::future<MessageResponse> ThreadPool::enqueue(const MessageRequest& input) {
         if (input.format == MessageRequest::Formats::IMAGE)
         {
             TesseractWorker tesseract(config);
-            utf8 = tesseract.run_ocr_image(input.pData, input.language);
+            auto sup_lang=tesseract.parse_lang(input.language);
+            utf8 = tesseract.run_ocr_image(input.pData, sup_lang);
         }
         if(input.format == MessageRequest::Formats::PDF)
         {
             std::vector< std::future<std::pair<int, std::string>>> complited_tasks;
-            std::string ced;
-            PopplerWorker poppler;
+
+            PopplerWorker poppler(config);
             auto pdf=poppler.rendering_start(input.pData);
+            message.pData_recognize = std::accumulate(std::get<0>(pdf).begin(), std::get<0>(pdf).end(), std::string());
+            message.language =fasttext_workers[std::this_thread::get_id()]->run_work(message.pData_recognize);
+            auto sup_lang=TesseractWorker::parse_lang(input.language + "+" + message.language);
             for (size_t i = 0; i < std::get<1>(pdf).size(); i++)
             {
-                complited_tasks.push_back(this->enqueueFromTask(std::get<1>(pdf).at(i), input.language, i));
+                complited_tasks.push_back(this->enqueueFromTask(std::get<1>(pdf).at(i), sup_lang, i));
             }
             
             for (auto& k : complited_tasks)
@@ -89,9 +96,10 @@ std::future<MessageResponse> ThreadPool::enqueue(const MessageRequest& input) {
         }
         auto duration = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - start);
         SPDLOG_TRACE("Elapsed time for hash {} :{} seconds", std::get<0>(hash_pairr), duration.count());        
-        redis->push(utf8, input.language, std::get<0>(hash_pairr));
+        redis->push(utf8, message.language, std::get<0>(hash_pairr));
         message.pData = utf8;
-        message.language = input.language;
+        
+      //  message.language = input.language;
         message.state = MessageResponse::State::OK;
         return message;
         }

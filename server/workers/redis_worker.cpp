@@ -26,16 +26,18 @@ std::tuple<size_t,std::string,std::string> RedisWorker::check(const std::string 
             redis->hmget(string_hash_value, {"data","lang"},std::back_inserter(vals));
         else
         {
-            redis->set(string_hash_value,"", std::chrono::hours(3));
+            redis->hmset(string_hash_value, { std::make_pair("data",""),std::make_pair("lang","") });
+            redis->expire(string_hash_value, std::chrono::hours(3));
+            return std::make_tuple(hash, "", "");
         }
     }
     catch (sw::redis::Error& err)
     {
         SPDLOG_ERROR("Get hash error: {}", err.what());
     }
-    if (vals.size() == 2)
+    if (vals.size() == 2 && !vals[0].empty() && !vals[1].empty())
     {
-
+        return std::make_tuple(hash, vals[0], vals[1]);
     }
     else
     {
@@ -44,11 +46,23 @@ std::tuple<size_t,std::string,std::string> RedisWorker::check(const std::string 
         {
             auto duration = std::chrono::duration_cast<std::chrono::minutes>(std::chrono::steady_clock::now() - start);
             if (duration.count() > 3)
-                break;
+                return std::make_tuple(hash, "", "");
             std::this_thread::sleep_for(std::chrono::milliseconds(20));
-            redis->hmget(string_hash_value, { "data","lang" }, std::back_inserter(vals));
-            if (vals.size() == 2)
-                break;
+            try {
+                if (redis->exists(string_hash_value))
+                {
+                    vals.clear();
+                    redis->hmget(string_hash_value, { "data","lang" }, std::back_inserter(vals));
+                }
+            }
+            catch (sw::redis::Error& err)
+            {
+                SPDLOG_ERROR("Get hash error: {}", err.what());
+            }
+            if (vals.size() == 2 && !vals[0].empty() && !vals[1].empty())
+            {
+                return std::make_tuple(hash, vals[0], vals[1]);
+            }
         }
     }
     //return vals.size()==2 ? std::make_tuple(hash, vals[0],vals[1]) : std::make_tuple(hash,"","");

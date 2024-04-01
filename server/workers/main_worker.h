@@ -6,9 +6,11 @@
 #include <iostream>
 #include <future>
 #include <map>
+#include <numeric>
 #include "redis_worker.h"
 #include "tesseract_worker.h"
 #include "poppler_worker.h"
+#include "fasttext_worker.h"
 using Task = std::function<void()>;
 struct MessageResponse
 {
@@ -20,6 +22,7 @@ struct MessageResponse
 	State state;
 	std::string language;
 	std::string pData;
+	std::string pData_recognize;
 	std::string error;
 
 };
@@ -48,7 +51,7 @@ public:
 	std::future<std::pair<int, std::string>> ThreadPool::enqueueFromTask(const std::string& input, const std::string& lang ,const int& page);
 
 private:
-	
+	std::unordered_map<std::thread::id,std::shared_ptr<FasttextWorker>> fasttext_workers;
 	moodycamel::BlockingConcurrentQueue<Task> tasks; //¬ходна€ очередь тредпула
 	std::vector<std::thread> threads;
 	std::shared_ptr<RedisWorker> redis;

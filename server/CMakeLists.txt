@@ -34,7 +34,7 @@ add_executable (server  ${CPP_FILES} ${HPP_FILES} ${MOODYCAMEL_FILES} ${WORKER_C
 target_include_directories(server SYSTEM
                                PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/generated>")
 
-target_link_libraries(server PRIVATE asio-grpc::asio-grpc oatpp::oatpp oatpp::oatpp-swagger redis++::redis++ unofficial::poppler::poppler-cpp unofficial::poppler::poppler-private PNG::PNG  Boost::boost spdlog::spdlog spdlog::spdlog_header_only libtesseract)
+target_link_libraries(server PRIVATE asio-grpc::asio-grpc oatpp::oatpp oatpp::oatpp-swagger redis++::redis++ unofficial::poppler::poppler-cpp unofficial::poppler::poppler-private PNG::PNG  Boost::boost spdlog::spdlog spdlog::spdlog_header_only libtesseract fasttext-static)
 
 add_definitions(-DOATPP_SWAGGER_RES_PATH="${OATPP_BASE_DIR}bin/oatpp-swagger/res" -DOATPP_DISABLE_ENV_OBJECT_COUNTERS)
 target_compile_features(server PUBLIC cxx_std_17)

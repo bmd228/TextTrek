@@ -22,19 +22,22 @@ class ResponseDto : public oatpp::DTO {
 	DTO_FIELD(Enum<State>::AsString, state)=State::OK;
 	DTO_FIELD(String, err);
 	DTO_FIELD(String, pData);
+	DTO_FIELD(String, pData_recognize);
 	DTO_FIELD(String, language);
 	public:
 
 		ResponseDto() = default;
 
-		ResponseDto(const String& pData_, const String& language_, const String& err_,const Enum<State>& state_ )
+		ResponseDto(const String& pData_, const String& pData_recognize_, const String& language_, const String& err_,const Enum<State>& state_ )
 			: pData(pData_)
+			, pData_recognize(pData_recognize_)
 			, language(language_)
 			, err(err_),
 			state(state_)
 		{}
 		ResponseDto(const MessageResponse& message)
 			: pData(message.pData)
+			, pData_recognize(message.pData_recognize)
 			, language(message.language)
 			, err(message.error),
 			state(State(message.state))

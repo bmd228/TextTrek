@@ -10,15 +10,17 @@
 #include <iostream>
 #include <tuple>
 #include <spdlog/spdlog.h>
+#include "config.h"
 class meta;
 class PopplerWorker
 {
 public:
-	PopplerWorker();
+	PopplerWorker(const Config& config);
 	~PopplerWorker();
 	std::string write_png_memory(poppler::image& img, int actual_dpi);
-	std::tuple < std::string, std::vector<std::string> > rendering_start(const std::string& in);
+	std::tuple <std::vector<std::string>, std::vector<std::string> > rendering_start(const std::string& in);
 private:
+    const Config& config;
 	static void dummy_error_function(const std::string&, void*)
 	{
 		return; //перегрузка error

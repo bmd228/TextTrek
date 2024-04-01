@@ -1,5 +1,5 @@
 #include "poppler_worker.h"
-PopplerWorker::PopplerWorker()
+PopplerWorker::PopplerWorker(const Config& config_):config(config_)
 {
     poppler::set_debug_error_function(dummy_error_function, nullptr);
 }
@@ -7,12 +7,13 @@ PopplerWorker::PopplerWorker()
 PopplerWorker::~PopplerWorker()
 {
 }
-std::tuple<std::string,std::vector<std::string>> PopplerWorker::rendering_start(const std::string& in)
+std::tuple<std::vector<std::string>,std::vector<std::string>> PopplerWorker::rendering_start(const std::string& in)
 {
+    auto start = std::chrono::steady_clock::now();
     if (!poppler::page_renderer::can_render())
     {
         SPDLOG_WARN( "Renderer compiled without Splash support");
-        return std::make_tuple("", std::vector<std::string>());
+        return std::make_tuple(std::vector<std::string>(), std::vector<std::string>());
     }
     std::unique_ptr<poppler::document> doc(poppler::document::load_from_raw_data(in.data(), in.size()));
 
@@ -20,12 +21,12 @@ std::tuple<std::string,std::vector<std::string>> PopplerWorker::rendering_start(
     {
 
         SPDLOG_INFO("Cant read pdf");
-        return std::make_tuple("", std::vector<std::string>());
+        return std::make_tuple(std::vector<std::string>(), std::vector<std::string>());
     }
     if (doc->is_locked())
     {
         SPDLOG_INFO("PDF is locked");
-        return std::make_tuple("", std::vector<std::string>());
+        return std::make_tuple(std::vector<std::string>(), std::vector<std::string>());
     }
     std::string text;
     double      dpi_x = 200.0;
@@ -57,7 +58,7 @@ std::tuple<std::string,std::vector<std::string>> PopplerWorker::rendering_start(
 
     //    }
     //}
-    std::string utf8;
+    std::vector<std::string> utf8;
     std::vector<std::string> images;
     for (int i = 0; i < doc->pages(); i++)
     {
@@ -68,7 +69,9 @@ std::tuple<std::string,std::vector<std::string>> PopplerWorker::rendering_start(
         {
             continue;
         }
-        utf8+=page->text().to_utf8().data();
+        utf8.push_back(page->text().to_utf8().data());
+        if (i > config.max_render)
+            continue;
         auto img = render.render_page(page.get(), dpi_x, dpi_y);
         ///////////////////////////////////////////
         int       dpi = -1;
@@ -77,6 +80,8 @@ std::tuple<std::string,std::vector<std::string>> PopplerWorker::rendering_start(
         ///////////////////////////////////////////
         images.push_back(write_png_memory(img, actual_dpi));
     }
+    auto duration = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - start);
+    SPDLOG_TRACE("Render time  {} :{} seconds", std::get<0>(hash_pairr), duration.count());
     return std::make_tuple(utf8, images);
 }
 std::string PopplerWorker::write_png_memory(poppler::image& img, int actual_dpi)

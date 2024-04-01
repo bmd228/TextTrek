@@ -10,7 +10,7 @@ int main()
 #ifdef  WIN32
 	SetConsoleOutputCP(CP_UTF8);
 #endif //  WIN32
-	int         log_level(spdlog::level::trace);
+	spdlog::set_level(spdlog::level::trace);
 	Config config;
 	SPDLOG_INFO("Worker init");
 	MainWorker worker(config);
