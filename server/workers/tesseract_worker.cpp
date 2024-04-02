@@ -10,16 +10,16 @@ std::string TesseractWorker::run_ocr_image(const std::string& data, const std::s
     std::string outText;
     api = new tesseract::TessBaseAPI();
     // Initialize tesseract-ocr with English, without specifying tessdata path
+
     if (api->Init(config.tesseract_data_path.c_str(), lang.c_str())) {
         SPDLOG_ERROR("Could not initialize tesseract.");
         exit(1);
     }
-    //tesseract::LoadDataFromFile()
-    //api->Init()
-    //FileReader reader = NULL;
     api->SetPageSegMode(tesseract::PageSegMode::PSM_AUTO_OSD);
     // Open input image with leptonica library
+    
     Pix* image = pixReadMem((const l_uint8*)data.data(), data.size());
+    
     api->SetImage(image);
     // Get OCR result
     outText = api->GetUTF8Text();
@@ -29,7 +29,7 @@ std::string TesseractWorker::run_ocr_image(const std::string& data, const std::s
 
     pixDestroy(&image);
     auto duration = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - start);
-    SPDLOG_TRACE("Language identification time  {} :{} seconds", std::get<0>(hash_pairr), duration.count());
+    SPDLOG_TRACE("Tesseract work time   :{} seconds", duration.count());
     return outText;
 
 }

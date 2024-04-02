@@ -14,20 +14,16 @@ service Example {
 
 
 message Response {
-  enum State {
-    OK = 0;
-    Error = 1;
-  }
-  bytes pData=1;
+  string pData=1;
   string language=2;
-  State state=3;
-  string err=4;
+  optional string pData_recognize=3;
 }
 
 message Request {
     enum Formats {
-    IMAGE = 0;
-    PDF = 1;
+    AUTO =0;
+    IMAGE = 1;
+    PDF = 2;
   }
   Formats format = 1;
   bytes pData=2;

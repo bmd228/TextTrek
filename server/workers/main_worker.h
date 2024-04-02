@@ -11,37 +11,13 @@
 #include "tesseract_worker.h"
 #include "poppler_worker.h"
 #include "fasttext_worker.h"
+#include "cascade.grpc.pb.h"
+
 using Task = std::function<void()>;
-struct MessageResponse
-{
-	enum  State {
-		OK = 0,
-		Error = 1
-	};
+using MessageResponse=ProtoAPI::Response;
+using MessageRequest = ProtoAPI::Request;
 
-	State state;
-	std::string language;
-	std::string pData;
-	std::string pData_recognize;
-	std::string error;
 
-};
-struct MessageRequest
-{
-	enum  Formats {
-		AUTO =0,
-		IMAGE = 1,
-		PDF = 2,
-		// Добавьте другие значения перечисления по мере необходимости
-	};
-	MessageRequest() {};
-	MessageRequest(const std::string& pData_, const std::string& language_, const Formats& format_) :pData(pData_), language(language_), format(format_) {};
-	static Formats stringToFormat(const std::string& str);
-	Formats format;
-	std::string language;
-	std::string pData;
-
-};
 class ThreadPool
 {
 public:
@@ -66,8 +42,9 @@ public:
 	MainWorker(const Config&);
 	~MainWorker();
 	MessageResponse push(const MessageRequest& in);
+	const Config& get_config() { return config; };
 private:
 	ThreadPool pool;
-
+	const Config config;
 };
 

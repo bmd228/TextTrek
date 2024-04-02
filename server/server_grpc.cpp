@@ -1,4 +1,5 @@
 #include "server_grpc.h"
+
 ServerShutdown::ServerShutdown(grpc::Server& server, agrpc::GrpcContext& grpc_context)
     : server(server), signals(grpc_context, SIGINT, SIGTERM)
 {
@@ -108,7 +109,6 @@ asio::awaitable<void>  GrpcServer::reader(grpc::ServerAsyncReaderWriter<ProtoAPI
         ProtoAPI::Request request;
         if (!co_await agrpc::read(reader_writer, request))
         {
-            // Client is done writing.
             break;
         }
         // Send request to writer. Using detached as completion token since we do not want to wait until the writer
@@ -131,11 +131,12 @@ asio::awaitable<bool> GrpcServer::writer(grpc::ServerAsyncReaderWriter<ProtoAPI:
             // Channel got closed by the reader.
             break;
         }
+        
         // Switch to the thread_pool.
         co_await asio::post(asio::bind_executor(thread_pool, asio::use_awaitable));
         // Compute the response.
-        ProtoAPI::Response response;
-        response.set_pdata(request.pdata());
+        ProtoAPI::Response response= this->worker.push(request);
+      //  response.set_pdata(request.pdata());
         // reader_writer is thread-safe so we can just interact with it from the thread_pool.
         ok = co_await agrpc::write(reader_writer, response);
         // Now we are back on the main thread.
@@ -153,18 +154,18 @@ void GrpcServer::register_client_streaming_handler(ProtoAPI::Example::AsyncServi
     //    asio::bind_executor(grpc_context, &handle_client_streaming_request));
 }
 
-GrpcServer::GrpcServer(const int& port)
+GrpcServer::GrpcServer(MainWorker& worker_):worker(worker_)
 {
    
-    std::unique_ptr<grpc::Server> server;
+   
     grpc::ServerBuilder builder;
     agrpc::GrpcContext grpc_context{ builder.AddCompletionQueue() };
-    builder.AddListeningPort("0.0.0.0:50051", grpc::InsecureServerCredentials());
+    builder.AddListeningPort(worker_.get_config().grpc_server+":"+std::to_string(worker_.get_config().grpc_port), grpc::InsecureServerCredentials());
     ProtoAPI::Example::AsyncService  service;
     builder.RegisterService(&service);
     server = builder.BuildAndStart();
     abort_if_not(bool{ server });
-    ServerShutdown server_shutdown{ *server, grpc_context };
+    server_shutdown=std::make_unique<ServerShutdown>(*server, grpc_context );
     asio::thread_pool thread_pool{ 1 };
     register_client_streaming_handler(service, grpc_context);
     asio::co_spawn(
@@ -174,13 +175,14 @@ GrpcServer::GrpcServer(const int& port)
             co_await handle_bidirectional_streaming_request(service, thread_pool);
         },
         asio::detached);
-
-
-
-    grpc_context.run();
+    grpc_context.run();  
     std::cout << "Shutdown completed\n";
 }
-
+void GrpcServer::stop()
+{
+    server_shutdown->shutdown();
+}
 GrpcServer::~GrpcServer()
 {
+    stop();
 }

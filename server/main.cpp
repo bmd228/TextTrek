@@ -18,8 +18,7 @@ int main()
 	HttpServer http_server(worker);
 	http_server.run();
 	
-	//auto dd=worker.push("what");
-	GrpcServer server_grpc(50051);
-	cout << "Hello CMake." << endl;
+	GrpcServer server_grpc(worker);
+
 	return 0;
 }

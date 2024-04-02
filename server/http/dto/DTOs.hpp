@@ -19,8 +19,6 @@ class ResponseDto : public oatpp::DTO {
 
 	DTO_INIT(ResponseDto, DTO);
 
-	DTO_FIELD(Enum<State>::AsString, state)=State::OK;
-	DTO_FIELD(String, err);
 	DTO_FIELD(String, pData);
 	DTO_FIELD(String, pData_recognize);
 	DTO_FIELD(String, language);
@@ -32,15 +30,11 @@ class ResponseDto : public oatpp::DTO {
 			: pData(pData_)
 			, pData_recognize(pData_recognize_)
 			, language(language_)
-			, err(err_),
-			state(state_)
 		{}
 		ResponseDto(const MessageResponse& message)
-			: pData(message.pData)
-			, pData_recognize(message.pData_recognize)
-			, language(message.language)
-			, err(message.error),
-			state(State(message.state))
+			: pData(message.pdata())
+			, pData_recognize(message.pdata_recognize())
+			, language(message.language())
 		{
 		}
 
@@ -58,6 +52,28 @@ class  RequestDto : public oatpp::DTO {
 	DTO_FIELD(Enum<Formats>, format)=Formats::AUTO;
 	DTO_FIELD(oatpp::swagger::Binary, file);
 	DTO_FIELD(String, language);
+//public:
+//	MessageRequest to_Message() {
+//		MessageRequest req;
+//		//
+//		//static const std::map<std::string, Formats> formatMap = {
+//	 //  {"AUTO", Formats::AUTO},
+//	 //  {"IMAGE", Formats::IMAGE},
+//	 //  {"PDF", Formats::PDF}
+//	 //  // Добавьте другие соответствия, если необходимо
+//		//};
+//
+//		//// Ищем соответствие строки в карте
+//		//auto it = formatMap.find(str);
+//		//if (it != formatMap.end()) {
+//		//	return it->second;
+//		//}
+//
+//		//// Если соответствие не найдено, возвращаем значение по умолчанию
+//		//return Formats::AUTO;
+//		req.set_format((MessageRequest::Formats)format.getEntryByName("AUTO").value);
+//		req.set_pdata(file.)
+//	}
 
 };
 #include OATPP_CODEGEN_END(DTO)

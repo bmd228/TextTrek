@@ -7,7 +7,8 @@ PopplerWorker::PopplerWorker(const Config& config_):config(config_)
 PopplerWorker::~PopplerWorker()
 {
 }
-std::tuple<std::vector<std::string>,std::vector<std::string>> PopplerWorker::rendering_start(const std::string& in)
+
+std::tuple<std::vector<std::string>, std::vector<std::string>> PopplerWorker::rendering_start(const std::string& in, bool only_text)
 {
     auto start = std::chrono::steady_clock::now();
     if (!poppler::page_renderer::can_render())
@@ -70,7 +71,7 @@ std::tuple<std::vector<std::string>,std::vector<std::string>> PopplerWorker::ren
             continue;
         }
         utf8.push_back(page->text().to_utf8().data());
-        if (i > config.max_render)
+        if (only_text || i > config.max_render)
             continue;
         auto img = render.render_page(page.get(), dpi_x, dpi_y);
         ///////////////////////////////////////////
@@ -81,7 +82,7 @@ std::tuple<std::vector<std::string>,std::vector<std::string>> PopplerWorker::ren
         images.push_back(write_png_memory(img, actual_dpi));
     }
     auto duration = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - start);
-    SPDLOG_TRACE("Render time  {} :{} seconds", std::get<0>(hash_pairr), duration.count());
+    SPDLOG_TRACE("Render time  :{} seconds",  duration.count());
     return std::make_tuple(utf8, images);
 }
 std::string PopplerWorker::write_png_memory(poppler::image& img, int actual_dpi)

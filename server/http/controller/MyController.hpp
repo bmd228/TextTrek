@@ -72,15 +72,21 @@ public:
 
     }
     Action onUploaded() {
-
         /* Get multipart by name */
+        auto message = MessageRequest();
         auto file = m_multipart->getNamedPart("file");
         auto format = m_multipart->getNamedPart("format");
         auto language = m_multipart->getNamedPart("language");
 
         OATPP_ASSERT_HTTP(format, Status::CODE_400, "file is null");
         OATPP_ASSERT_HTTP(file, Status::CODE_400, "file is null");
-        auto message = MessageRequest(file->getPayload()->getInMemoryData(), language->getPayload()->getInMemoryData(), MessageRequest::stringToFormat(format->getPayload()->getInMemoryData()));
+        message.set_pdata(file->getPayload()->getInMemoryData());
+        message.set_language(language->getPayload()->getInMemoryData());
+        ProtoAPI::Request::Formats f;
+        MessageRequest::Formats_Parse(format->getPayload()->getInMemoryData(), &f);
+        message.set_format(f);
+         //MessageRequest(file->getPayload()->getInMemoryData(), language->getPayload()->getInMemoryData(), (MessageRequest::Formats)format.getEntryByName(format->getPayload()->getInMemoryData()).value));
+       
         auto response = ResponseDto::createShared(controller->m_mainWorker.push(message));
         return _return(controller->createDtoResponse(Status::CODE_200, response));
 

@@ -45,6 +45,6 @@ std::string FasttextWorker::run_work(const std::string& in)
 
     }
     auto duration = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - start);
-    SPDLOG_TRACE("Language identification time  {} :{} seconds", std::get<0>(hash_pairr), duration.count());
+    SPDLOG_TRACE("Language identification time  :{} seconds", duration.count());
     return lang;
 }

@@ -17,7 +17,9 @@
 #include <boost/asio/thread_pool.hpp>
 #include <grpcpp/server.h>
 #include <grpcpp/server_builder.h>
-
+#include <spdlog/spdlog.h>
+#include "workers/main_worker.h"
+#include "workers/config.h"
 #include <optional>
 #include <thread>
 namespace asio = boost::asio;
@@ -34,10 +36,13 @@ struct ServerShutdown
 class GrpcServer
 {
 public:
-	GrpcServer(const int& port);
+	GrpcServer(MainWorker&);
 	~GrpcServer();
-
+	void stop();
 private:
+	std::unique_ptr<grpc::Server> server;
+	std::unique_ptr<ServerShutdown> server_shutdown;
+	MainWorker& worker;
 	asio::awaitable<void> reader(grpc::ServerAsyncReaderWriter<ProtoAPI::Response, ProtoAPI::Request>& reader_writer,
 		Channel& channel);
 	asio::awaitable<bool> writer(grpc::ServerAsyncReaderWriter<ProtoAPI::Response, ProtoAPI::Request>& reader_writer,

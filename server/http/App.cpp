@@ -34,13 +34,13 @@ void HttpServer::run() {
   //auto connectionHandler = oatpp::web::server::HttpConnectionHandler::createShared(router);
 
   auto executor= std::make_shared<oatpp::async::Executor>(
-      4 /* Data-Processing threads */,
+      1 /* Data-Processing threads */,
       1 /* I/O threads */,
       1 /* Timer threads */
       );
   this->connectionHandler = oatpp::web::server::AsyncHttpConnectionHandler::createShared(router,executor);
 
-  this->connectionProvider = oatpp::network::tcp::server::ConnectionProvider::createShared({ "localhost", 8000, oatpp::network::Address::IP_4 });
+  this->connectionProvider = oatpp::network::tcp::server::ConnectionProvider::createShared({ worker.get_config().http_server, worker.get_config().http_port, oatpp::network::Address::IP_4 });
 
   //OATPP_COMPONENT(std::shared_ptr<oatpp::network::ConnectionHandler>, connectionHandler);
 

@@ -18,7 +18,7 @@ public:
 	PopplerWorker(const Config& config);
 	~PopplerWorker();
 	std::string write_png_memory(poppler::image& img, int actual_dpi);
-	std::tuple <std::vector<std::string>, std::vector<std::string> > rendering_start(const std::string& in);
+	std::tuple <std::vector<std::string>, std::vector<std::string> > rendering_start(const std::string& in,const bool only_text=false);
 private:
     const Config& config;
 	static void dummy_error_function(const std::string&, void*)

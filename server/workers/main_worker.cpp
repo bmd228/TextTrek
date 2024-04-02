@@ -54,12 +54,17 @@ std::future<MessageResponse> ThreadPool::enqueue(const MessageRequest& input) {
         // ¬ данном примере просто возвращаем строку
         MessageResponse message;
         
-        auto hash_pairr=redis->check(input.pData);
+        auto hash_pairr=redis->check(input.pdata());
         if (!std::get<1>(hash_pairr).empty() && !std::get<2>(hash_pairr).empty())
         {
-            message.pData = std::get<1>(hash_pairr);
-            message.language = std::get<2>(hash_pairr);
-            message.state = MessageResponse::State::OK;
+            if (input.format() == MessageRequest::Formats::Request_Formats_PDF)
+            {
+                PopplerWorker poppler(config);
+                auto pdf = poppler.rendering_start(input.pdata());
+                message.set_pdata(std::accumulate(std::get<0>(pdf).begin(), std::get<0>(pdf).end(), std::string()));
+            }
+            message.set_pdata_recognize(std::get<1>(hash_pairr));
+            message.set_language(std::get<2>(hash_pairr));
             return message;
         }
         else
@@ -68,21 +73,21 @@ std::future<MessageResponse> ThreadPool::enqueue(const MessageRequest& input) {
         std::string utf8;
         
 
-        if (input.format == MessageRequest::Formats::IMAGE)
+        if (input.format() == MessageRequest::Formats::Request_Formats_IMAGE)
         {
             TesseractWorker tesseract(config);
-            auto sup_lang=tesseract.parse_lang(input.language);
-            utf8 = tesseract.run_ocr_image(input.pData, sup_lang);
+            auto sup_lang=tesseract.parse_lang(input.language());
+            utf8 = tesseract.run_ocr_image(input.pdata(), sup_lang);
         }
-        if(input.format == MessageRequest::Formats::PDF)
+        if(input.format() == MessageRequest::Formats::Request_Formats_PDF)
         {
             std::vector< std::future<std::pair<int, std::string>>> complited_tasks;
 
             PopplerWorker poppler(config);
-            auto pdf=poppler.rendering_start(input.pData);
-            message.pData_recognize = std::accumulate(std::get<0>(pdf).begin(), std::get<0>(pdf).end(), std::string());
-            message.language =fasttext_workers[std::this_thread::get_id()]->run_work(message.pData_recognize);
-            auto sup_lang=TesseractWorker::parse_lang(input.language + "+" + message.language);
+            auto pdf=poppler.rendering_start(input.pdata());
+            message.set_pdata(std::accumulate(std::get<0>(pdf).begin(), std::get<0>(pdf).end(), std::string()));
+            message.set_language(fasttext_workers[std::this_thread::get_id()]->run_work(message.pdata()));
+            auto sup_lang=TesseractWorker::parse_lang(input.language() + "+" + message.language());
             for (size_t i = 0; i < std::get<1>(pdf).size(); i++)
             {
                 complited_tasks.push_back(this->enqueueFromTask(std::get<1>(pdf).at(i), sup_lang, i));
@@ -96,11 +101,10 @@ std::future<MessageResponse> ThreadPool::enqueue(const MessageRequest& input) {
         }
         auto duration = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - start);
         SPDLOG_TRACE("Elapsed time for hash {} :{} seconds", std::get<0>(hash_pairr), duration.count());        
-        redis->push(utf8, message.language, std::get<0>(hash_pairr));
-        message.pData = utf8;
+        redis->push(utf8, message.language(), std::get<0>(hash_pairr));
+        message.set_pdata_recognize(utf8);
         
       //  message.language = input.language;
-        message.state = MessageResponse::State::OK;
         return message;
         }
         
@@ -114,25 +118,25 @@ std::future<MessageResponse> ThreadPool::enqueue(const MessageRequest& input) {
   //  std::this_thread::sleep_for(std::chrono::seconds(10));
     return result;
 }
-MessageRequest::Formats MessageRequest::stringToFormat(const std::string& str)
-{
-    static const std::map<std::string, Formats> formatMap = {
-        {"AUTO", Formats::AUTO},
-        {"IMAGE", Formats::IMAGE},
-        {"PDF", Formats::PDF}
-        // ƒобавьте другие соответстви€, если необходимо
-    };
-
-    // »щем соответствие строки в карте
-    auto it = formatMap.find(str);
-    if (it != formatMap.end()) {
-        return it->second;
-    }
-
-    // ≈сли соответствие не найдено, возвращаем значение по умолчанию
-    return Formats::AUTO; // или любое другое значение по умолчанию
-}
-MainWorker::MainWorker(const Config& config):pool(config)
+//MessageRequest::Formats MessageRequest::stringToFormat(const std::string& str)
+//{
+//    static const std::map<std::string, Formats> formatMap = {
+//        {"AUTO", Formats::AUTO},
+//        {"IMAGE", Formats::IMAGE},
+//        {"PDF", Formats::PDF}
+//        // ƒобавьте другие соответстви€, если необходимо
+//    };
+//
+//    // »щем соответствие строки в карте
+//    auto it = formatMap.find(str);
+//    if (it != formatMap.end()) {
+//        return it->second;
+//    }
+//
+//    // ≈сли соответствие не найдено, возвращаем значение по умолчанию
+//    return Formats::AUTO; // или любое другое значение по умолчанию
+//}
+MainWorker::MainWorker(const Config& config_):pool(config_),config(config_)
 {
 
 }
